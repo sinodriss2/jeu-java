@@ -13,10 +13,10 @@ Bonus: -Si cela est possible, nous aimerions ajouter un systeme de niveau de jou
        -Systeme de construction, exemple: le joueur pourrait trouver une echelle qui lui permet si il l'a place intelligement de grimper sur une maison ou autres afin d'obteneir une meilleure arme. Egalement poser des murs pour parer les projectiles
 
 liste des taches a effectuer par odre de priorité :
-       - déplacement et dynamique du personnage
-       - différentes cartes et intéraction pour passer s'un niveau à l'autre
-       - mob et intéractions 
-       -skin (perso, carte, mob...)
+       - déplacement et dynamique du personnage  |  10  |
+       - différentes cartes et intéraction pour passer d'un niveau à l'autre  |  10  |
+       - mob et intéractions |  2  |
+       -skin (perso, carte, mob...)  |  5  |
        
 
 2) idée (surement) non retenu: 
