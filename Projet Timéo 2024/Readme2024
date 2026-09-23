@@ -1,0 +1,38 @@
+Bienvenue futur joueur de GOON, le projet consiste en un mini jeu d'agriculture : un personnage se déplace
+sur des champs, prépare les terres, achète et plante des graines, arrose et récolte les cultures,
+pour pouvoir les vendre ensuite.
+Le joueur a à disposition des outils (pelle, houe et arrosoir), 3 types de graines(blé, maïs et patate)
+et commence le jeu avec 50 goons (la monnaie du jeu).
+Prérequis :
+Afin de lancer le jeu GOON il te faut un IDE Java (nous utilisons Eclipse dans ce guide)
+Téléchargement du jeu :
+Il va maintenant falloir télécharger les éléments du dossier JeuGlobal ainsi que toutes les images
+(fichiers .png) du dossiers images.
+(Optionnel les sons du dossier musiques  à mettre dans un dossier nommé sons(.mp3))
+Ensuite, créer un nouveau projet java sur éclipse, que tu peux appeler comme tu veux par exemple mon_jeu.
+Pour ce faire, clique sur File-New-Project… Puis sélectionne Java Project dans le dossier Java.
+Renseigne le nom de ton projet dans la case Project name: et enfin clique sur Finish.
+Ton projet étant créé, il apparaît maintenant dans la rubrique Package Explorer à gauche de l’écran,
+tu vas pouvoir y ajouter les éléments que tu as téléchargé ultérieurement.
+Afin de retrouver le dossier de ton projet, fais un clique droit sur ton projet, puis sélectionne
+Show In - System Explorer.
+Dernière étape :
+Maintenant que tu sais où se trouve ton projet, ajoute dans le dossier de ton projet, le dossier
+comportant les images du jeu que tu as téléchargé, puis dans le dossier src ajoute le fichier JeuGlobal.java.
+Voici la structure attendue :
+(voir image arborescence)
+Pour lancer le jeu il te suffit de fermer et d'ouvrir Eclipse puis de cliquer sur ton projet, de cliquer
+sur le dossier src puis de cliquer sur le fichier jeu Global et enfin de le lancer !
+Comment Jouer :
+Pour commencer à jouer il te faut tout d’abord appuyer sur le bouton JOUER. Ensuite ton personnage apparaît
+et tu pourras commencer les choses sérieuses.
+Ton personnage se déplace grâce aux flèches directionnelles de ton clavier, tu ne peux pas sortir de la zone
+appelée champ et tes possibilités sont le suivantes :
+Creuser (en cliquant sur la pelle) ce qui te permettra de préparer le terrain.
+Acheter des graines (en cliquant sur les images des différents produits), pour ce faire il te faudra avoir
+assez de goons.
+planter ces graines (en appuyant sur la houe) et en sélectionnant le type de graines que tu veux planter.
+et enfin arroser en appuyant sur l'arrosage.
+Attention certaines actions nécessitent que la zone soit dans un certain état, creusé, arrosée etc.
+Pour sélectionner une zone avant de faire une action dessus il te suffira de te placer à la gauche de
+cette zone.
