@@ -1,1 +1,613 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
+import java.util.HashMap;
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+
+
+
+public class JeuGlobal extends JPanel {
+
+    // PERSONNAGE 
+    public static class Personnage {
+        String nom;
+        int argentDisponible;
+        HashMap<String, Integer> inventaireGraines; // nom graine → quantité
+        HashMap<String, Integer> inventaireRecolte; // nom légume → quantité
+
+        public Personnage(String nom, int argentDisponible) {
+            this.nom = nom;
+            this.argentDisponible = argentDisponible;
+            this.inventaireGraines = new HashMap<>();
+            this.inventaireRecolte = new HashMap<>();
+        }
+
+        public void ajouterArgent(int montant) { if (montant > 0) argentDisponible += montant; }
+        public boolean peutAcheter(int prix) { return argentDisponible >= prix; }
+        public void depenserArgent(int montant) { if (montant <= argentDisponible) argentDisponible -= montant; }
+
+        public void ajouterGraine(String nom, int qte) {
+            inventaireGraines.put(nom, inventaireGraines.getOrDefault(nom,0)+qte);
+        }
+
+        public void ajouterRecolte(String nom, int qte){
+            inventaireRecolte.put(nom, inventaireRecolte.getOrDefault(nom,0)+qte);
+        }
+    }
+
+    //  PRODUIT 
+    public static class Produit {
+        String Name;
+        int PrixAchat;
+        public Produit(String name, int PA){ Name=name; PrixAchat=PA; }
+
+        public boolean acheterGraine(Personnage p){
+            if(p.peutAcheter(PrixAchat)){
+                p.depenserArgent(PrixAchat);
+                p.ajouterGraine(Name,1);
+                return true;
+            }
+            return false;
+        }
+    }
+    
+    // PRODUIT MARCHE VENTE 
+    
+    public static class ProduitMarche{
+    	String name;
+    	int prixAchat;
+    	int prixBaseAchat;
+    	int prixVente;
+    	int prixBaseVente;
+    	int stock;
+    	int achatsRecents;
+    	int ventesRecentes;
+    	int prixMin;
+    	int prixMax;
+    	
+    	public ProduitMarche(String name, int pa, int pba, int pv, int pbv) {
+    		this.name = name;
+    		this.prixAchat = pa;
+    		this.prixBaseAchat = pba; 
+    		this.prixBaseVente = pbv;
+    		this.prixVente = pbv; 
+    		this.stock = 500;
+    		this.achatsRecents = 0;
+    		this.ventesRecentes = 0;
+    		
+    		this.prixMin =(int)(prixBaseVente * 0.25); 
+    		this.prixMax = prixBaseAchat * 4; 
+    		
+    	}
+    	
+    	public void mettreAJourPrix() {
+    		double facteurDemande = 1 + (10.0 * achatsRecents / (stock + 1));
+    		double facteurOffre = 1 - (5.0 * ventesRecentes / (stock + 1));
+    		
+    		facteurOffre = Math.max(facteurOffre, 0.25);
+    		facteurDemande = Math.min(facteurDemande, 4.0);  		
+    		
+    		prixAchat = (int)(prixBaseAchat * facteurDemande);
+    		prixVente = (int)(prixBaseVente * facteurOffre);
+    		
+    		if (prixAchat > prixMax) prixAchat = prixMax;
+    		if (prixVente < prixMin) prixVente = prixMin; 
+    	}
+    	
+    }
+    // fenetre de vente 
+    private void ouvrirFenetreVente() {
+    	JDialog vente = new JDialog((Frame) null, "Vente", true);
+    	vente.setSize(300,300);
+    	vente.setLayout(new BoxLayout(vente.getContentPane(), BoxLayout.Y_AXIS));
+    	
+    	vente.add(new JLabel("Que veux-tu vendre"));
+    	
+    	for (String nom : joueur.inventaireRecolte.keySet()) {
+    		int qte = joueur.inventaireRecolte.get(nom);
+    		if (qte <= 0) continue; 
+    		
+    		ProduitMarche pm = null; 
+    		if (nom.equals("Blé")) pm = marcheBle;
+    		if (nom.equals("Maïs")) pm = marcheMais;
+    		if (nom.equals("Patate")) pm = marchePatate; 
+    		
+    		if (pm == null) continue; 
+    		
+    		JButton b = new JButton(nom + "(" + qte + ") - " + pm.prixVente + "G" );
+    		ProduitMarche finalPM = pm;
+    		b.addActionListener(e -> {
+    			vendreProduit(nom, finalPM);
+    			vente.dispose();
+    		});
+    		
+    		vente.add(b);
+    	}
+    	vente.setVisible(true);
+    	
+    }
+    
+    // vendre le produit 
+    private void vendreProduit(String nom, ProduitMarche produit) {
+        Integer qte = joueur.inventaireRecolte.get(nom);
+        if (qte == null || qte <= 0) {
+            afficherMessage( "Tu n'as pas de " + nom + " à vendre !");
+            return;
+        }
+        joueur.inventaireRecolte.put(nom, qte - 1);
+        int montant = produit.prixVente;
+        joueur.ajouterArgent(montant);
+        labelArgent.setText(joueur.argentDisponible + " G");
+        produit.ventesRecentes += 1;
+        produit.stock -= 1;
+        produit.mettreAJourPrix();
+        repaint();
+        afficherMessage( nom + " vendu pour " + montant + " G !");
+    }
+
+
+    // CHAMP 
+    public static class CHAMP {
+        public enum Etat {HERBE, TERREBATTUE, TERREPRETE, PLANTE}
+        public class Zone {
+            public int xCZ, yCZ;
+            public Etat etat = Etat.HERBE;
+            public boolean arrose=false;
+            public String culture=null; 
+            public Zone(int x, int y){ xCZ=x; yCZ=y; }
+            public Rectangle getBounds(){ return new Rectangle(xCZ,yCZ,50,50);}
+        }
+
+        public ArrayList<Zone> zones;
+        public Image imgHerbe, imgTerreBattue, imgTerrePrete, imgPlante;
+
+        public CHAMP(int largeur, int hauteur, int startX, int startY){
+            zones = new ArrayList<>();
+            for(int i=0;i<largeur;i++){
+                for(int j=0;j<hauteur;j++){
+                    zones.add(new Zone(startX + i*50, startY + j*50));
+                }
+            }
+            imgHerbe = new ImageIcon("images/Herbe.png").getImage();
+            imgTerreBattue = new ImageIcon("images/TerreBattue.png").getImage();
+            imgTerrePrete = new ImageIcon("images/TerrePrête.png").getImage();
+            imgPlante = new ImageIcon("images/Plante.png").getImage(); 
+        }
+
+        public Zone getZoneSousJoueur(double x, double y){
+            for(Zone z : zones) if(z.getBounds().contains(x,y)) return z;
+            return null;
+        }
+
+        public void dessiner(Graphics2D g2){
+            for(Zone z : zones){
+                switch(z.etat){
+                    case HERBE: g2.drawImage(imgHerbe, z.xCZ, z.yCZ,50,50,null); break;
+                    case TERREBATTUE: g2.drawImage(imgTerreBattue, z.xCZ, z.yCZ,50,50,null); break;
+                    case TERREPRETE: g2.drawImage(imgTerrePrete, z.xCZ, z.yCZ,50,50,null); break;
+                    case PLANTE: g2.drawImage(imgPlante, z.xCZ, z.yCZ,50,50,null); break;
+                }
+                if(z.arrose && z.etat==Etat.PLANTE){
+                    g2.setColor(new Color(0,0,255,80));
+                    g2.fillRect(z.xCZ,z.yCZ,50,50);
+                }
+                g2.setColor(Color.BLACK);
+                g2.drawRect(z.xCZ,z.yCZ,50,50);
+            }
+        }
+    }
+
+    // VARIABLES 
+    private final int WIDTH=1000, HEIGHT=600;
+    private final int SIZE=50, STEP=50;
+    private double x=100, y=100;
+    private double targetX=100, targetY=100;
+    private double angleA=0, angleB=0;
+    private enum Direct {UP, DOWN, LEFT, RIGHT}
+    private Direct direction=Direct.RIGHT;
+
+    private Image persoFace, persoGauche, persoDroite;
+    private final Rectangle zoneInventaire=new Rectangle(800,0,200,600);
+    private final Rectangle zoneBarreOutils=new Rectangle(0,550,800,50);
+
+    private Personnage joueur;
+    private Produit ble, mais, patate;
+    private CHAMP champ;
+    private JLabel labelArgent;
+    
+    private ProduitMarche marcheBle, marcheMais, marchePatate;
+    
+    //son 
+    
+    private Clip clipMusique;
+
+    private void jouerSon(String cheminFichier) {
+        try {
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(cheminFichier));
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioIn);
+            clip.start();
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void jouerMusique(String cheminFichier) {
+        try {
+            AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File(cheminFichier));
+            clipMusique = AudioSystem.getClip();
+            clipMusique.open(audioIn);
+            clipMusique.loop(Clip.LOOP_CONTINUOUSLY);
+            clipMusique.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void arreterMusique() {
+        if (clipMusique != null) {
+            clipMusique.stop();
+            clipMusique.close();
+        }
+    }
+    
+    private JLabel messageSysteme;
+    private void afficherMessage(String msg) {
+    	messageSysteme.setText(msg);
+    	
+    	Timer t = new Timer(5000, e -> messageSysteme.setText(" "));
+    	t.setRepeats(false);
+    	t.restart();
+    }
+
+    
+    
+
+    // CONSTRUCTEUR 
+    public JeuGlobal(){
+        setPreferredSize(new Dimension(WIDTH+200, HEIGHT));
+        setBackground(Color.WHITE);
+
+        // Images personnage
+        persoFace = new ImageIcon("images/Timo1.png").getImage();
+        persoDroite = new ImageIcon("images/Timo2.png").getImage();
+        persoGauche = new ImageIcon("images/Timo3.png").getImage();
+
+        // Joueur et produits (graines)
+        joueur = new Personnage("Timeyooooo", 50);
+        ble = new Produit("Blé",10);
+        mais = new Produit("Maïs",20);
+        patate = new Produit("Patate",15);
+        
+        // vente 
+        marcheBle = new ProduitMarche("Blé", 10, 10, 5, 5);
+        marcheMais = new ProduitMarche("Maïs", 20, 20, 10, 10);
+        marchePatate = new ProduitMarche ("Patate", 15, 15, 5, 5);
+
+        // Champ 16x11 
+        champ = new CHAMP(16,11,0,0);
+
+        // Timer mouvement fluide
+        Timer timer = new Timer(16, e -> {
+            double diff = angleB - angleA;
+            if(Math.abs(diff)>1) angleA += diff*0.2; else angleA=angleB;
+            x += (targetX - x)*0.2;
+            y += (targetY - y)*0.2;
+            repaint();
+        });
+        timer.start();
+
+        // Déplacement clavier
+        InputMap im = getInputMap(WHEN_IN_FOCUSED_WINDOW);
+        ActionMap am = getActionMap();
+        im.put(KeyStroke.getKeyStroke("UP"),"moveUp");
+        im.put(KeyStroke.getKeyStroke("DOWN"),"moveDown");
+        im.put(KeyStroke.getKeyStroke("LEFT"),"moveLeft");
+        im.put(KeyStroke.getKeyStroke("RIGHT"),"moveRight");
+        am.put("moveUp", new MoveAction(0,-STEP,Direct.UP));
+        am.put("moveDown", new MoveAction(0,STEP,Direct.DOWN));
+        am.put("moveLeft", new MoveAction(-STEP,0,Direct.LEFT));
+        am.put("moveRight", new MoveAction(STEP,0,Direct.RIGHT));
+
+        // Interface
+        setLayout(null);
+        messageSysteme = new JLabel("");
+        messageSysteme.setFont(new Font("Arial", Font.BOLD, 18));
+        messageSysteme.setForeground(Color.YELLOW);
+        messageSysteme.setBounds(20, 515, 760, 30);                                        //
+        add(messageSysteme);
+        
+        labelArgent = new JLabel(joueur.argentDisponible + " G");
+        labelArgent.setFont(new Font("Arial",Font.BOLD,16));
+        labelArgent.setForeground(Color.BLACK);
+        labelArgent.setBounds(150,555,200,30);
+        add(labelArgent);
+
+        // Boutons d'achat graines
+        JButton boutonBle = createImageButton("images/blé.png",150,50);
+        JButton boutonMais = createImageButton("images/maïs.png",150,50);
+        JButton boutonPatate = createImageButton("images/Patate (2).png",150,50);
+        
+
+        boutonBle.setBounds(810,170,150,50);
+        boutonMais.setBounds(810,230,150,50);
+        boutonPatate.setBounds(810,310,150,50);
+
+        add(boutonBle); add(boutonMais); add(boutonPatate);
+        boutonBle.addActionListener(e -> acheterGraine(ble));
+        boutonMais.addActionListener(e -> acheterGraine(mais));
+        boutonPatate.addActionListener(e -> acheterGraine(patate));
+
+        // Boutons outils
+        JButton boutonArrosoir = createImageButton("images/Arrosoir.png",40,40);
+        JButton boutonPelle = createImageButton("images/pelle.png",40,40);
+        JButton boutonHoue = createImageButton("images/Houe.png",40,40);
+
+        int xOutils = 10;
+
+        boutonPelle.setBounds(xOutils, 555, boutonPelle.getWidth(), boutonPelle.getHeight());
+        xOutils += boutonPelle.getWidth() + 5;
+        boutonHoue.setBounds(xOutils, 555, boutonHoue.getWidth(), boutonHoue.getHeight());
+        xOutils += boutonHoue.getWidth() + 5;
+        boutonArrosoir.setBounds(xOutils, 555, boutonArrosoir.getWidth(), boutonArrosoir.getHeight());
+        add(boutonPelle);
+        add(boutonHoue);
+        add(boutonArrosoir);
+
+
+        // Action pelle
+        boutonPelle.addActionListener(e -> {
+        	jouerSon("sons/pelle.wav");
+            CHAMP.Zone zone = champ.getZoneSousJoueur(x+SIZE/2,y+SIZE/2);
+            if(zone!=null){
+                if(zone.etat==CHAMP.Etat.HERBE){ zone.etat=CHAMP.Etat.TERREBATTUE; afficherMessage("Zone préparée, réutilise la pelle encore une fois!"); }
+                else if(zone.etat==CHAMP.Etat.TERREBATTUE){ zone.etat=CHAMP.Etat.TERREPRETE; afficherMessage("Zone prête pour planter !"); }
+                else afficherMessage("Cette zone n'a pas besoin d'être préparée !");
+                repaint();
+            }
+        });
+
+        // Action houe 
+        boutonHoue.addActionListener(e -> {
+        	jouerSon("sons/plantation.wav");
+
+            CHAMP.Zone zone = champ.getZoneSousJoueur(x + SIZE/2, y + SIZE/2);
+            if (zone == null) {
+                afficherMessage( "Tu n'es pas sur une zone de champ !");
+                return;
+            }
+            if (zone.etat != CHAMP.Etat.TERREPRETE) {
+                afficherMessage( "Zone non prête pour planter, utilise la pelle !");
+                return;
+            }
+            
+            ArrayList<String> grainesDisponibles = new ArrayList<>();
+            for (String nom : joueur.inventaireGraines.keySet()) {
+                if (joueur.inventaireGraines.get(nom) > 0) {
+                    grainesDisponibles.add(nom);
+                }
+            }
+
+            if (grainesDisponibles.isEmpty()) {
+                afficherMessage( "Inventaire de graines vide, achètes-en !");
+                return;
+            }
+
+            String graineChoisie = (String) JOptionPane.showInputDialog(
+                    this,
+                    "Quelle graine veux-tu planter ?",
+                    "Choisir graine",
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    grainesDisponibles.toArray(),
+                    grainesDisponibles.get(0)
+            );
+
+            if (graineChoisie != null) {
+                zone.etat = CHAMP.Etat.PLANTE;
+                zone.culture = graineChoisie;
+                joueur.inventaireGraines.put(graineChoisie, joueur.inventaireGraines.get(graineChoisie) - 1);
+                afficherMessage( "Plante " + graineChoisie + " plantée ! Arrose maintenant !");
+                repaint();
+            }
+        });
+
+
+        // Action arrosoir
+        boutonArrosoir.addActionListener(e -> {
+        	jouerSon("sons/arroser.wav");
+
+            CHAMP.Zone zone = champ.getZoneSousJoueur(x+SIZE/2,y+SIZE/2);
+            if(zone!=null && zone.etat==CHAMP.Etat.PLANTE){
+                zone.arrose=true;
+                afficherMessage("Zone arrosée, tu peux récolter !");
+                repaint();
+            } else afficherMessage("Rien à arroser ici, plantes d'abord une graine !");
+        });
+
+        // Récolte 
+        JButton boutonRecolte = new JButton("Récolter");
+        boutonRecolte.setBounds(810,400,150,40);
+        add(boutonRecolte);
+        boutonRecolte.addActionListener(e -> {
+        	jouerSon("sons/recolte.wav");
+
+            CHAMP.Zone zone = champ.getZoneSousJoueur(x+SIZE/2,y+SIZE/2);
+            if(zone!=null && zone.etat==CHAMP.Etat.PLANTE && zone.arrose){
+                joueur.ajouterRecolte(zone.culture,3);
+                zone.etat=CHAMP.Etat.HERBE;
+                zone.arrose=false;
+                zone.culture=null;
+                afficherMessage("Récolte effectuée !");
+                repaint();
+            } else afficherMessage("Plante non prête ou non arrosée !");
+        });
+        
+        //Vente 
+        JButton boutonVendre = new JButton("Vendre");
+        boutonVendre.setBounds(810, 500, 150,40);
+        add(boutonVendre);
+        boutonVendre.addActionListener(e -> {
+        	jouerSon("sons/achat.wav");
+        	ouvrirFenetreVente();
+        }
+        		);
+        
+        //son 
+        jouerMusique("sons/musique_fond.wav");
+        // musique_fond = qkthr de aphex twin
+        //musique_fond2 = need de pinegrove
+        //musique_fond3 = chill lofi libre de droit 
+        // musique_fond4 = dawn chorus de thom yorke 
+        // musique_fond5 = poison tree de grouper 
+
+    }
+
+    //  MOVE ACTION 
+    private class MoveAction extends AbstractAction{
+        private final int dx, dy; private final Direct newDir;
+        public MoveAction(int dx,int dy,Direct dir){ this.dx=dx; this.dy=dy; this.newDir=dir; }
+        public void actionPerformed(ActionEvent e){
+            int newX = (int)Math.max(0,Math.min(targetX+dx,WIDTH-SIZE));
+            int newY = (int)Math.max(0,Math.min(targetY+dy,HEIGHT-SIZE));
+            Rectangle futur = new Rectangle(newX,newY,SIZE,SIZE);
+            if(!futur.intersects(zoneInventaire) && !futur.intersects(zoneBarreOutils)){
+                targetX=newX; targetY=newY;
+            }
+            direction=newDir;
+            switch(direction){ case UP: angleB=-90; break; case DOWN: angleB=90; break; case LEFT: angleB=180; break; case RIGHT: angleB=0; break;}
+            
+            if (direction == Direct.UP || direction == Direct.LEFT) {
+            	jouerSon("sons/pas.wav");
+                    }else if (direction == Direct.DOWN || direction == Direct.RIGHT) {
+                    	jouerSon("sons/pas.wav");
+                    }
+            repaint();
+        }
+    }
+
+    // PAINT COMPONENT
+    @Override
+    protected void paintComponent(Graphics g){
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g;
+
+        // Fond interface
+        g2.setColor(new Color(144,200,180));
+        g2.fill(zoneInventaire);
+        g2.setColor(new Color(204,150,0));
+        g2.fill(zoneBarreOutils);
+
+        // Dessiner le champ
+        champ.dessiner(g2);
+
+        // Dessiner personnage
+        Image currentImg = persoFace;
+        if(direction==Direct.LEFT) currentImg=persoGauche;
+        else if(direction==Direct.RIGHT) currentImg=persoDroite;
+        AffineTransform old = g2.getTransform();
+        g2.translate(x,y);
+        if(currentImg!=null) g2.drawImage(currentImg,-SIZE/2,-SIZE/2,SIZE,SIZE,this);
+        g2.setTransform(old);
+
+        // Dessiner inventaire (quantités)
+        int yInv = 20;
+        g2.setColor(Color.BLACK);
+        g2.setFont(new Font("Arial",Font.BOLD,14));
+        g2.drawString("Graines :",810,yInv);
+        yInv+=20;
+        for(String nom : joueur.inventaireGraines.keySet()){
+            g2.drawString(nom + " : "+joueur.inventaireGraines.get(nom),810,yInv);
+            yInv+=20;
+        }
+        g2.drawString("Récoltes :",810,yInv); yInv+=20;
+        for(String nom : joueur.inventaireRecolte.keySet()){
+            g2.drawString(nom + " : "+joueur.inventaireRecolte.get(nom),810,yInv);
+            yInv+=20;
+        }
+    }
+
+    private JButton createImageButton(String path,int maxWidth,int maxHeight){
+        ImageIcon icon = new ImageIcon(path);
+        Image img = icon.getImage();
+        double scale = Math.min((double)maxWidth/img.getWidth(null),(double)maxHeight/img.getHeight(null));
+        int newW = (int)(img.getWidth(null)*scale);
+        int newH = (int)(img.getHeight(null)*scale);
+        Image scaled = img.getScaledInstance(newW,newH,Image.SCALE_SMOOTH);
+        JButton button = new JButton(new ImageIcon(scaled));
+        button.setBorderPainted(false); button.setContentAreaFilled(false);
+        button.setFocusPainted(false); button.setOpaque(false);
+        button.setSize(newW,newH);
+        return button;
+    }
+
+    private void acheterGraine(Produit produit){
+        if(produit.acheterGraine(joueur)){
+            labelArgent.setText(joueur.argentDisponible+" G");
+            jouerSon("sons/achat.wav");
+        } else JOptionPane.showMessageDialog(this,"Pas assez d’argent pour acheter "+produit.Name+" !");
+    }
+
+    // PAGE DE LANCEMENT
+    public static class PageLancement extends JPanel {
+        private JFrame parentFrame;
+        public PageLancement(JFrame frame){
+            this.parentFrame=frame;
+            setLayout(null); setBackground(new Color(204,150,0));
+
+            JLabel titre = new JLabel("GOON",SwingConstants.CENTER);
+            titre.setFont(new Font("Arial",Font.BOLD,72));
+            titre.setForeground(Color.YELLOW);
+            titre.setBounds(0,50,1000,100);
+            add(titre);
+
+            JLabel sousTitre = new JLabel("Grande Opération Organique Nationale", SwingConstants.CENTER);
+            sousTitre.setFont(new Font("Arial", Font.PLAIN, 32));
+            sousTitre.setForeground(Color.YELLOW);
+            sousTitre.setBounds(0, 130, 1000, 50);
+            add(sousTitre);
+
+            
+            int panelWidth = 1000;
+            int imgWidth = 200;
+            int x = (panelWidth - imgWidth) / 2;
+            ImageIcon logoIcon = new ImageIcon("images/goonpièce.png");
+            Image logoImg = logoIcon.getImage().getScaledInstance(200,200,Image.SCALE_SMOOTH);
+            JLabel logo = new JLabel(new ImageIcon(logoImg));
+            logo.setBounds(x, 200, 170, 200);
+            add(logo);
+
+
+            JButton jouer = new JButton("JOUER");
+            jouer.setFont(new Font("Arial",Font.BOLD,24));
+            jouer.setBackground(new Color(144,200,180));
+            jouer.setBounds(400,450,200,50);
+            jouer.addActionListener(e -> lancerJeu());
+            add(jouer);
+        }
+        private void lancerJeu(){
+            parentFrame.setContentPane(new JeuGlobal());
+            parentFrame.revalidate();
+        }
+    }
+
+    // MAIN 
+    public static void main(String[] args){
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("GOON 🌾");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(1000,638);
+            frame.setLocationRelativeTo(null);
+            PageLancement page = new PageLancement(frame);
+            frame.setContentPane(page);
+            frame.setVisible(true);
+        });
+    }
+}
+
+
 
