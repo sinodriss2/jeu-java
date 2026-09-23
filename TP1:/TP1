@@ -11,7 +11,12 @@ Chaque niveau contient un décor particulier (neige, désert, jungle...) les ski
 Finalement le dernier portail nous mene vers un boss final que nous devons battre.
 Bonus: -Si cela est possible, nous aimerions ajouter un systeme de niveau de joueur, celui-ci gagnerait de l'attaque ou de la vitesse en fonction des enemies tués.
        -Systeme de construction, exemple: le joueur pourrait trouver une echelle qui lui permet si il l'a place intelligement de grimper sur une maison ou autres afin d'obteneir une meilleure arme. Egalement poser des murs pour parer les projectiles
-liste des taches 
 
+liste des taches a effectuer par odre de priorité :
+       - déplacement et dynamique du personnage
+       - différentes cartes et intéraction pour passer s'un niveau à l'autre
+       - mob et intéractions 
+       -skin (perso, carte, mob...)
+       
 
 2) idée (surement) non retenu: 
