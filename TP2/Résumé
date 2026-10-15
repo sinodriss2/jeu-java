@@ -8,3 +8,8 @@ Nous avons également créé une classe Obstacle.java afin de gérer les éléme
 centraliser le lancement et la compilation de l'ensemble du projet.
 
 Nous travaillons actuellement à l'intégration d'un fond texturé en herbe et d'obstacles.
+
+On s'oocupe aussi de la création des MOB (monstres) mais celle-ci est assez compliqué car le facteur aléatoire 
+des mouvements du MOB font des choses bizarres dans le code. C'est une prochaine étape de résolution.
+L'avancé graphique va aussi etre délicate pour les monstres, c'est pour cela qu'on met en lien pour éviter que la synchronisation
+des taches nous creer des aberations.
