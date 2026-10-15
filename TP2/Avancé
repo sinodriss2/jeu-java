@@ -1,1 +1,58 @@
+private final int WIDTH = 1000, HEIGHT = 600;
+private final int SIZE = 50, STEP = 50;
+private double x = 100, y = 100;
+private double targetX = 100, targetY = 100;
+private double angleA = 0, angleB = 0;
+private enum Direct { UP, DOWN, LEFT, RIGHT }
+private Direct direction = Direct.RIGHT;
 
+
+Timer timer = new Timer(16, e -> {
+  double diff = angleB - angleA;
+  if(Math.abs(diff) > 1) angleA += diff * 0.2; else angleA = angleB;
+  x += (targetX - x) * 0.2;
+  y += (targetY - y) * 0.2;
+  repaint();
+});
+timer.start();
+
+// Déplacement clavier
+InputMap im = getInputMap(WHEN_IN_FOCUSED_WINDOW);
+ActionMap am = getActionMap();
+im.put(KeyStroke.getKeyStroke("UP"), "moveUp");
+im.put(KeyStroke.getKeyStroke("DOWN"), "moveDown");
+im.put(KeyStroke.getKeyStroke("LEFT"), "moveLeft");
+im.put(KeyStroke.getKeyStroke("RIGHT"), "moveRight");
+am.put("moveUp", new MoveAction(0, -STEP, Direct.UP));
+am.put("moveDown", new MoveAction(0, STEP, Direct.DOWN));
+am.put("moveLeft", new MoveAction(-STEP, 0, Direct.LEFT));
+am.put("moveRight", new MoveAction(STEP, 0, Direct.RIGHT));
+
+private class MoveAction extends AbstractAction {
+  private final int dx, dy; 
+  private final Direct newDir;
+        
+  public MoveAction(int dx, int dy, Direct dir){ 
+    this.dx = dx; 
+    this.dy = dy; 
+     this.newDir = dir; 
+  }
+        
+  public void actionPerformed(ActionEvent e){
+    int newX = (int)Math.max(0, Math.min(targetX + dx, WIDTH - SIZE));
+    int newY = (int)Math.max(0, Math.min(targetY + dy, HEIGHT - SIZE));
+            
+    targetX = newX; 
+    targetY = newY;
+            
+    direction = newDir;
+    switch(direction){ 
+      case UP: angleB = -90; break; 
+      case DOWN: angleB = 90; break; 
+      case LEFT: angleB = 180; break; 
+      case RIGHT: angleB = 0; break;
+    }
+            
+    repaint();
+}
+}
