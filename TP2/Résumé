@@ -2,3 +2,8 @@ Pendant ces 3 semaines, on a donc décidé de prendre la premiere option de jeu 
 Nous allons donc creer une map avec notre personnage qui sera vu du dessus et qui se balade, j'ai donc fais mes recherches sur les mouvements
 de caméra et sur l'implémentation du mouvement du personnage avec des touches. Ainsi, avec les fleches directionnels 
 on peut se déplacer avec le personnage.
+
+Nous avons également pu commencer à concevoir l'interface graphique, dotée dans un premier temps d'une taille fixe qui sera appelée à s'étendre par la suite.
+Nous avons également créé une classe Obstacle.java afin de gérer les éléments du décor et les collisions avec le personnage, ainsi qu'une classe Main pour 
+centraliser le lancement et la compilation de l'ensemble du projet.
+
