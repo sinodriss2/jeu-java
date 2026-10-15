@@ -1,0 +1,4 @@
+Pendant ces 3 semaines, on a donc décidé de prendre la premiere option de jeu que nous avions (CF dossier TP1).
+Nous allons donc creer une map avec notre personnage qui sera vu du dessus et qui se balade, j'ai donc fais mes recherches sur les mouvements
+de caméra et sur l'implémentation du mouvement du personnage avec des touches. Ainsi, avec les fleches directionnels 
+on peut se déplacer avec le personnage.
