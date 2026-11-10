@@ -9,7 +9,7 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
         try {
-            // 👈 Regarde bien le chemin corrigé ici :
+            
             URL iconURL = Main.class.getResource("/bruh/couverture.png");
             
             if (iconURL != null) {
@@ -24,7 +24,7 @@ public class Main {
         }
         
         
-        // 👇 On ajoute MonJeu dans la fenêtre, pas ImagePanel !
+        
         frame.add(new MonJeu()); 
         
         frame.pack(); 
