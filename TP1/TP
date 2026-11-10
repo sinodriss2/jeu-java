@@ -1,0 +1,33 @@
+Pour cette premiere seance en autonomie, nous avons donc creer notre groupe et commencé a nous organiser dans le travail.
+Groupe: Anas DAHI , Yassine DRISS , Ramazan KAHVECI , Jean Marie Marvin NTOUTOUME ESSONE, 
+Timéo JOLY, Antoine de Bailliencourt
+
+
+Boite à idée: Pour la finalité du jeu
+Idée 1)
+Pour cette premiere seance, on en est venu à imaginer une jeu vu de ciel ou notre personnage se deplace sur une carte (camera se deplace avec le personnage) afin de trouver un portail qui le mene a une autre carte.
+Chaque "niveau" contient des PNJ qui nous attaquent (plusieurs type de mob:mélée,distance,piège,etc...), pour les combattre nous aurons des coffres contenant des armes. 
+Chaque niveau contient un décor particulier (neige, désert, jungle...) les skins des mobs et du personnage pourront donc varier également
+Finalement le dernier portail nous mene vers un boss final que nous devons battre.
+Bonus: -Si cela est possible, nous aimerions ajouter un systeme de niveau de joueur, celui-ci gagnerait de l'attaque ou de la vitesse en fonction des enemies tués.
+       -Systeme de construction, exemple: le joueur pourrait trouver une echelle qui lui permet si il l'a place intelligement de grimper sur une maison ou autres afin d'obteneir une meilleure arme. Egalement poser des murs pour parer les projectiles
+
+liste des taches a effectuer par odre de priorité :
+       - déplacement et dynamique du personnage  |  10  |
+       - différentes cartes et intéraction pour passer d'un niveau à l'autre  |  10  |
+       - mob et intéractions |  2  |
+       -skin (perso, carte, mob...)  |  5  |
+       
+
+2) idée non retenu: jeu de plateforme avec une vu sur le coté
+
+
+
+
+
+Design Possible: https://www.bing.com/images/search?view=detailV2&ccid=rRmxkc0I&id=AC435DAC8B11CB96FC8622E64246D039A201A2B1&thid=OIP.rRmxkc0IAulKZcwzulW__AHaHa&mediaurl=https%3A%2F%2Fimg.freepik.com%2Fvecteurs-premium%2Fpixel-art-sorciere-pixelated-witch-personnage-jeu-video-sorciere-icones-fond_1038602-10.jpg&cdnurl=https%3A%2F%2Fth.bing.com%2Fth%2Fid%2FR.ad19b191cd0802e94a65cc33ba55bffc%3Frik%3DsaIBojnQRkLmIg%26pid%3DImgRaw%26r%3D0&exph=626&expw=626&q=sorciere+jeux+ind%C3%A9+vu+du+dessus&ck=1A333B3A2D09CF3169D7C2564CDD7184&selectedIndex=48&itb=0&ajaxhist=0&ajaxserp=0&shtc=0&shth=OIP.rRmxkc0IAulKZcwzulW__AHaHa&shsc=idp&form=EX0050&shid=38e50bcf-cb59-439b-aa83-6461db54bc33&shtp=GetUrl&shtk=UGl4ZWwgYXJ0IFNvcmNpw6hyZSBQaXhlbGF0ZWQgV2l0Y2ggcGVyc29ubmFnZSBKZXUgdmlkw6lvIFNvcmNpw6hyZSBpY8O0bmVzIC4uLg%3D%3D&shdk=VHJvdXbDqWUgc3VyIEJpbmcgc3VyIGZyLmZyZWVwaWsuY29t&shhk=W4OeF%2BRq55ab7CwCi3gB9lamMOLu6AjFWrI%2FvG%2F6slU%3D
+je ne sais pas si cela vous convient d'etre dans une DA de ce style?
+
+
+
+Biblio: learngitbranching.js

@@ -1,0 +1,41 @@
+public static class Mob {
+    double x, y;
+    double targetX, targetY;
+    double speed = 1.5;
+    int changeDirectionCooldown = 0;
+
+    public Mob(double startX, double startY) {
+        this.x = startX;
+        this.y = startY;
+        this.targetX = startX;
+        this.targetY = startY;
+    }
+
+    public void update(double playerX, double playerY, int mapWidth, int mapHeight) {
+        double distToPlayer = Math.hypot(playerX - x, playerY - y);
+        double aggroRange = 200; 
+
+        if (distToPlayer < aggroRange) {
+            double angle = Math.atan2(playerY - y, playerX - x);
+            x += Math.cos(angle) * (speed * 1.3); 
+            y += Math.sin(angle) * (speed * 1.3);
+        } else {
+            changeDirectionCooldown--;
+            if (changeDirectionCooldown <= 0) {
+                double angle = Math.random() * 2 * Math.PI;
+                double distance = 60 + Math.random() * 120;
+                targetX = Math.max(25, Math.min(mapWidth - 25, x + Math.cos(angle) * distance));
+                targetY = Math.max(25, Math.min(mapHeight - 25, y + Math.sin(angle) * distance));
+                changeDirectionCooldown = 150; 
+            }
+
+            double dx = targetX - x;
+            double dy = targetY - y;
+            double dist = Math.hypot(dx, dy);
+            if (dist > 2) {
+                x += (dx / dist) * speed;
+                y += (dy / dist) * speed;
+            }
+        }
+    }
+}
