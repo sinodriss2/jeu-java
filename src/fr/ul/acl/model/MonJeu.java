@@ -31,7 +31,7 @@ public class MonJeu extends JPanel {
         setFocusable(true);
         try {
             // 1. On charge ton image de collision (ex: collision.png dans ton dossier bruh)
-            java.net.URL collisionUrl = getClass().getResource("/bruh/obstacle_vrai.png");
+            java.net.URL collisionUrl = getClass().getResource("/imagesSons/obstacle_vrai.png");
             if (collisionUrl != null) {
                 java.awt.image.BufferedImage collisionImage = javax.imageio.ImageIO.read(collisionUrl);
                 
@@ -60,7 +60,7 @@ public class MonJeu extends JPanel {
             e.printStackTrace();
         }
         // Chargement du fond d'écran
-        java.net.URL imgURL = getClass().getResource("/bruh/Test_fond_obstacle.png"); 
+        java.net.URL imgURL = getClass().getResource("/imagesSons/Test_fond_obstacle.png"); 
         if (imgURL != null) {
             bgImage = new ImageIcon(imgURL).getImage();
         } else {
@@ -68,7 +68,7 @@ public class MonJeu extends JPanel {
         }
         
         try {
-            java.net.URL musicUrl = getClass().getResource("/bruh/Strike.wav");
+            java.net.URL musicUrl = getClass().getResource("/imagesSons/Strike.wav");
             if (musicUrl != null) {
                 javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(musicUrl);
                 javax.sound.sampled.Clip clip = javax.sound.sampled.AudioSystem.getClip();

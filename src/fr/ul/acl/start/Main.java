@@ -10,7 +10,7 @@ public class Main {
         
         try {
             
-            URL iconURL = Main.class.getResource("/bruh/couverture.png");
+            URL iconURL = Main.class.getResource("/imagesSons/couverture.png");
             
             if (iconURL != null) {
                 ImageIcon icon = new ImageIcon(iconURL);
