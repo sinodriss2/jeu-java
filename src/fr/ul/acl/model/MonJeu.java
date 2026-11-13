@@ -54,7 +54,7 @@ public class MonJeu extends JPanel {
                         }
                     }
                 }
-                System.out.println("🧱 Murs chargés avec succès ! Nombre de blocs : " + obstacles.size());
+                System.out.println(" Murs chargés avec succès, Nombre de blocs : " + obstacles.size());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -75,7 +75,7 @@ public class MonJeu extends JPanel {
                 clip.open(audioIn);
                 clip.start();
                 clip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
-                System.out.println("🎵 Musique de fond activée !");
+                System.out.println("Musique de fond activée ");
             }
         } catch (Exception e) {
             e.printStackTrace();
