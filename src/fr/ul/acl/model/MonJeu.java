@@ -31,6 +31,15 @@ public class MonJeu extends JPanel {
     public MonJeu() {
         setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
         setFocusable(true);
+     // Dans le constructeur de MonJeu, ajoute l'écouteur de clic de souris :
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                if (e.getButton() == java.awt.event.MouseEvent.BUTTON1) { // Clic gauche
+                    player.attack();
+                }
+            }
+        });
 
         // Initialisation du monde et du joueur
         world = new GameWorld(MAP_WIDTH, MAP_HEIGHT);
@@ -52,7 +61,11 @@ public class MonJeu extends JPanel {
         // Écouteur clavier
         addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) { pressedKeys.add(e.getKeyCode()); }
+            public void keyPressed(KeyEvent e) { pressedKeys.add(e.getKeyCode()); 
+            if (e.getKeyCode() == KeyEvent.VK_A) {
+                player.switchWeapon();
+            }
+            }
             @Override
             public void keyReleased(KeyEvent e) { pressedKeys.remove(e.getKeyCode()); }
         });
@@ -119,16 +132,29 @@ public class MonJeu extends JPanel {
         if (pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q)) { dx -= speed; }
         if (pressedKeys.contains(KeyEvent.VK_RIGHT) || pressedKeys.contains(KeyEvent.VK_D)) { dx += speed; }
 
+        // Normalisation diagonale normale
         if (dx != 0 && dy != 0) {
             dx *= 0.7071;
             dy *= 0.7071;
         }
 
+        // Si le joueur appuie sur Espace, on déclenche le dash en lui passant la direction actuelle
+        if (pressedKeys.contains(KeyEvent.VK_SPACE)) {
+            player.startDash(dx, dy);
+        }
+
+        // --- GESTION DE LA VITESSE SI LE DASH EST ACTIF ---
+        if (player.isDashing()) {
+            double dashSpeed = speed * 3.5; // Vitesse fulgurante !
+            dx = player.getDashDx() * dashSpeed;
+            dy = player.getDashDy() * dashSpeed;
+        }
+
         boolean isMoving = (dx != 0 || dy != 0);
         player.updateAnimation(isMoving);
 
-        // Gestion du son de pas
-        if (isMoving) {
+        // Gestion du son de pas (on coupe le son pendant le dash si on veut, ou on le laisse)
+        if (isMoving && !player.isDashing()) {
             if (walkSoundClip != null && !isWalkingSoundPlaying) {
                 walkSoundClip.setFramePosition(0);
                 walkSoundClip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
@@ -141,7 +167,7 @@ public class MonJeu extends JPanel {
             }
         }
 
-        // --- COLLISIONS ---
+        // --- COLLISIONS X et Y ---
         double futurX = Math.max(SIZE / 2, Math.min(player.getX() + dx, MAP_WIDTH - SIZE / 2));
         Rectangle hitboxX = new Rectangle((int)(futurX - SIZE / 2), (int)(player.getY() - SIZE / 2), SIZE, SIZE);
         if (!world.checkCollision(hitboxX)) {
