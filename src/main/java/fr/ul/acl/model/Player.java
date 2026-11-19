@@ -210,4 +210,24 @@ public class Player {
 
     public WeaponType getCurrentWeapon() { return currentWeapon; }
     public void heal(int amount) { this.hp = Math.min(maxHp, this.hp + amount); }
+    private int lives = 3;
+
+    public int getLives() {
+        return lives;
+    }
+
+    public void loseLife() {
+        this.lives = Math.max(0, this.lives - 1);
+    }
+
+    public void resetHp() {
+        this.hp = this.maxHp;
+        this.invulnerabilityTimer = 0;
+    }
+
+    public void resetAll() {
+        this.lives = 3;
+        this.hp = this.maxHp;
+        this.invulnerabilityTimer = 0;
+    }
 }

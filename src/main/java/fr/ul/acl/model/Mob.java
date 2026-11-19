@@ -10,7 +10,7 @@ import javax.imageio.ImageIO;
 public class Mob {
     private double x, y;
     private double targetX, targetY;
-    private double speed = 1.8;
+    private double speed = 1.7;
     private int changeDirectionCooldown = 0;
     private boolean facingLeft = false;
 
@@ -19,12 +19,14 @@ public class Mob {
     private int hp;
     private int hurtFlashTimer = 0;
 
-    private ArrayList<BufferedImage> sprites = new ArrayList<>();
+    private ArrayList<BufferedImage> walkSprites = new ArrayList<>();
+    private ArrayList<BufferedImage> attackSprites = new ArrayList<>();
+    private boolean isAttacking = false;
     private int animIndex = 0;
     private int animTimer = 0;
 
     public Mob(double startX, double startY) {
-        this(startX, startY, 60, 1.8);
+        this(startX, startY, 60, 1.7);
     }
 
     public Mob(double startX, double startY, int maxHp, double speed) {
@@ -39,24 +41,33 @@ public class Mob {
     }
 
     private void loadSprites() {
-        // Noms de fichiers possibles dans src/main/resources/imagesSons/
-        String[] candidates = {
-       
-            /*"/imagesSons/zombie_attack_01.png",
-            "/imagesSons/zombie_attack_02.png",
-            "/imagesSons/zombie_attack_03.png",*/
+        String[] walkFiles = {
             "/imagesSons/zombie_walk_01.png",
             "/imagesSons/zombie_walk_02.png",
-            "/imagesSons/zombie_walk_03.png",
-            
+            "/imagesSons/zombie_walk_03.png"
+        };
+        String[] attackFiles = {
+            "/imagesSons/zombie_attack_01.png",
+            "/imagesSons/zombie_attack_02.png",
+            "/imagesSons/zombie_attack_03.png"
         };
 
-        for (String path : candidates) {
+        for (String path : walkFiles) {
             try {
                 java.net.URL url = getClass().getResource(path);
                 if (url != null) {
-                    BufferedImage raw = ImageIO.read(url);
-                    sprites.add(makeWhiteTransparent(raw));
+                    walkSprites.add(makeWhiteTransparent(ImageIO.read(url)));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        for (String path : attackFiles) {
+            try {
+                java.net.URL url = getClass().getResource(path);
+                if (url != null) {
+                    attackSprites.add(makeWhiteTransparent(ImageIO.read(url)));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -111,13 +122,18 @@ public class Mob {
         if (dx < -0.1) facingLeft = true;
         else if (dx > 0.1) facingLeft = false;
 
-        // Animation de marche si plusieurs frames sont chargées
-        if (sprites.size() > 1 && (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)) {
+        // Animation d'attaque quand le zombie est proche du joueur, sinon marche
+        isAttacking = (distToPlayer < 75 && !attackSprites.isEmpty());
+        ArrayList<BufferedImage> activeList = isAttacking ? attackSprites : walkSprites;
+
+        if (activeList.size() > 1 && (isAttacking || Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1)) {
             animTimer++;
-            if (animTimer >= 12) {
-                animIndex = (animIndex + 1) % sprites.size();
+            if (animTimer >= (isAttacking ? 8 : 12)) {
+                animIndex = (animIndex + 1) % activeList.size();
                 animTimer = 0;
             }
+        } else {
+            animIndex = 0;
         }
 
         double nextX = Math.max(size / 2, Math.min(x + dx, mapWidth - size / 2));
@@ -145,28 +161,33 @@ public class Mob {
         int drawX = (int)(x - size / 2);
         int drawY = (int)(y - size / 2);
 
-        if (!sprites.isEmpty()) {
-            BufferedImage current = sprites.get(animIndex);
+        ArrayList<BufferedImage> activeList = isAttacking ? attackSprites : walkSprites;
+
+        if (!activeList.isEmpty()) {
+            BufferedImage current = activeList.get(animIndex % activeList.size());
             if (facingLeft) {
                 g2.drawImage(current, drawX + size, drawY, -size, size, null);
             } else {
                 g2.drawImage(current, drawX, drawY, size, size, null);
             }
-            // Flash rouge semi-transparent quand le zombie prend un coup
             if (hurtFlashTimer > 0) {
                 g2.setColor(new Color(255, 50, 50, 120));
                 g2.fillOval(drawX + 8, drawY + 8, size - 16, size - 16);
             }
         } else {
             g2.setColor(hurtFlashTimer > 0 ? Color.WHITE : new Color(46, 125, 50));
-            g2.fillOval(drawX, drawY, size, size);
+            g2.fillOval(drawX + 8, drawY + 8, size - 16, size - 16);
+            g2.setColor(Color.RED);
+            g2.fillOval(drawX + 20, drawY + 22, 7, 7);
+            g2.fillOval(drawX + 37, drawY + 22, 7, 7);
         }
 
-        // Barre de vie au-dessus du zombie
+        // Barre de vie dynamique au-dessus du zombie
+        double ratio = (double) hp / maxHp;
         g2.setColor(Color.DARK_GRAY);
         g2.fillRect(drawX + 6, drawY - 10, size - 12, 6);
-        g2.setColor(Color.GREEN);
-        int hpWidth = (int)((size - 12) * ((double) hp / maxHp));
+        g2.setColor(ratio > 0.5 ? Color.GREEN : (ratio > 0.25 ? Color.ORANGE : Color.RED));
+        int hpWidth = (int)((size - 12) * ratio);
         g2.fillRect(drawX + 6, drawY - 10, hpWidth, 6);
     }
 

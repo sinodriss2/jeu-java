@@ -4,7 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class MonJeu extends JPanel {
@@ -15,20 +17,24 @@ public class MonJeu extends JPanel {
     private final int SIZE = 64;    
     private final double speed = 4 * 4.0;
 
-    // Nos objets modularisés
     private Player player;
     private GameWorld world;
     private GameMenu menu;
     private HealthBar healthBar;
     private Portal portal;
+    private ArrayList<Mob> mobs = new ArrayList<>();
 
-    // Entrées et souris
+    private boolean isDying = false;
+    private int deathAnimTimer = 0;
+    private boolean gameOver = false;
+    private boolean victory = false;
+
     private int mouseX = 0;
     private int mouseY = 0;
     private final Set<Integer> pressedKeys = new HashSet<>();
 
-    // Audio
     private javax.sound.sampled.Clip walkSoundClip;
+    private javax.sound.sampled.Clip knifeSoundClip;
     private boolean isWalkingSoundPlaying = false;
 
     public MonJeu() {
@@ -38,22 +44,22 @@ public class MonJeu extends JPanel {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
-                if (!menu.isActive() && e.getButton() == java.awt.event.MouseEvent.BUTTON1) {
+                if (!menu.isActive() && !isDying && !gameOver && !victory && e.getButton() == java.awt.event.MouseEvent.BUTTON1) {
                     player.attack();
+                    handlePlayerAttack();
                 }
             }
         });
 
-        // Initialisation du monde, du joueur et de tes 3 modules
         world = new GameWorld(MAP_WIDTH, MAP_HEIGHT);
         player = new Player(200, 1000, SIZE);
         menu = new GameMenu();
         healthBar = new HealthBar(15, 15, 180, 22);
-        // Portail placé juste à droite du spawn (x=400, y=1000) vers Map 2 (spawn 300, 300)
-        portal = new Portal(400, 1000, 64, 64, 2, 300, 300);
+        spawnMobsForMap(1);
 
         loadWalkSound();
         loadBackgroundMusic();
+        loadKnifeSound();
 
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override
@@ -69,19 +75,21 @@ public class MonJeu extends JPanel {
                     menu.handleKeyPressed(e.getKeyCode());
                     return;
                 }
+                if ((gameOver || victory) && e.getKeyCode() == KeyEvent.VK_R) {
+                    restartGame();
+                    return;
+                }
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     menu.setActive(true);
                     pressedKeys.clear();
                     return;
                 }
 
+                if (isDying) return;
+
                 pressedKeys.add(e.getKeyCode());
                 if (e.getKeyCode() == KeyEvent.VK_A) {
                     player.switchWeapon();
-                }
-                // Touche H pour tester la baisse de vie pendant la démonstration
-                if (e.getKeyCode() == KeyEvent.VK_H) {
-                    player.takeDamage(15);
                 }
             }
 
@@ -98,6 +106,58 @@ public class MonJeu extends JPanel {
         timer.start();
     }
 
+    private void spawnMobsForMap(int mapId) {
+        mobs.clear();
+        if (mapId == 1) {
+            // Map 1 : zombies à 60 PV -> 2 coups de couteau (30 dégâts) suffisent
+            mobs.add(new Mob(320, 960, 60, 1.7));
+            mobs.add(new Mob(340, 1060, 60, 1.7));
+            mobs.add(new Mob(260, 1120, 60, 1.7));
+            portal = new Portal(400, 1000, 64, 64, 2, 300, 300, false);
+        } else if (mapId == 2) {
+            // Map 2 : zombies plus coriaces à 120 PV -> 4 coups de couteau
+            mobs.add(new Mob(420, 300, 120, 2.2));
+            mobs.add(new Mob(450, 380, 120, 2.2));
+            mobs.add(new Mob(350, 420, 120, 2.2));
+            mobs.add(new Mob(520, 450, 120, 2.2));
+            portal = new Portal(500, 300, 64, 64, 3, 0, 0, false);
+        }
+    }
+
+    private void handlePlayerAttack() {
+        if (knifeSoundClip != null && player.getCurrentWeapon() == Player.WeaponType.COUTEAU) {
+            knifeSoundClip.setFramePosition(0);
+            knifeSoundClip.start();
+        }
+
+        double angle = Math.atan2(mouseY - (WINDOW_HEIGHT / 2.0), mouseX - (WINDOW_WIDTH / 2.0));
+        int reach = (player.getCurrentWeapon() == Player.WeaponType.COUTEAU) ? 75 : 55;
+        int damage = (player.getCurrentWeapon() == Player.WeaponType.COUTEAU) ? 30 : 15;
+
+        double hitCenterX = player.getX() + Math.cos(angle) * reach;
+        double hitCenterY = player.getY() + Math.sin(angle) * reach;
+        Rectangle attackBox = new Rectangle((int)(hitCenterX - 50), (int)(hitCenterY - 50), 100, 100);
+
+        for (Mob mob : mobs) {
+            if (attackBox.intersects(mob.getBounds())) {
+                mob.takeDamage(damage, player.getX(), player.getY());
+            }
+        }
+    }
+
+    private void restartGame() {
+        gameOver = false;
+        victory = false;
+        isDying = false;
+        deathAnimTimer = 0;
+        pressedKeys.clear();
+        player.resetAll();
+        player.setX(200);
+        player.setY(1000);
+        world.loadMap(1);
+        spawnMobsForMap(1);
+    }
+
     private void loadWalkSound() {
         try {
             java.net.URL walkSoundUrl = getClass().getResource("/imagesSons/grass1.wav");
@@ -106,9 +166,18 @@ public class MonJeu extends JPanel {
                 walkSoundClip = javax.sound.sampled.AudioSystem.getClip();
                 walkSoundClip.open(audioIn);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    private void loadKnifeSound() {
+        try {
+            java.net.URL url = getClass().getResource("/imagesSons/coup_couteau.wav");
+            if (url != null) {
+                javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(url);
+                knifeSoundClip = javax.sound.sampled.AudioSystem.getClip();
+                knifeSoundClip.open(audioIn);
+            }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     private void loadBackgroundMusic() {
@@ -122,15 +191,11 @@ public class MonJeu extends JPanel {
                     javax.sound.sampled.FloatControl gainControl = 
                         (javax.sound.sampled.FloatControl) clip.getControl(javax.sound.sampled.FloatControl.Type.MASTER_GAIN);
                     gainControl.setValue(-15.0f);
-                } catch (Exception ex) {
-                    System.err.println("Contrôle de volume non supporté.");
-                }
+                } catch (Exception ex) {}
                 clip.start();
                 clip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     @Override
@@ -140,17 +205,37 @@ public class MonJeu extends JPanel {
     }
 
     private void updateGame() {
-        if (menu.isActive()) {
-            if (walkSoundClip != null && isWalkingSoundPlaying) {
-                walkSoundClip.stop();
-                isWalkingSoundPlaying = false;
+        if (menu.isActive() || gameOver || victory) {
+            stopWalkSound();
+            return;
+        }
+
+        if (isDying) {
+            stopWalkSound();
+            pressedKeys.clear();
+            deathAnimTimer++;
+            if (deathAnimTimer >= 90) {
+                isDying = false;
+                deathAnimTimer = 0;
+                player.loseLife();
+
+                if (player.getLives() <= 0) {
+                    gameOver = true;
+                } else {
+                    player.resetHp();
+                    if (world.getCurrentMap() == 1) {
+                        player.setX(200);
+                        player.setY(1000);
+                    } else {
+                        player.setX(300);
+                        player.setY(300);
+                    }
+                }
             }
             return;
         }
 
-        double dx = 0;
-        double dy = 0;
-
+        double dx = 0, dy = 0;
         if (pressedKeys.contains(KeyEvent.VK_UP) || pressedKeys.contains(KeyEvent.VK_Z)) { dy -= speed; }
         if (pressedKeys.contains(KeyEvent.VK_DOWN) || pressedKeys.contains(KeyEvent.VK_S)) { dy += speed; }
         if (pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q)) { dx -= speed; }
@@ -181,10 +266,7 @@ public class MonJeu extends JPanel {
                 isWalkingSoundPlaying = true;
             }
         } else {
-            if (walkSoundClip != null && isWalkingSoundPlaying) {
-                walkSoundClip.stop();
-                isWalkingSoundPlaying = false;
-            }
+            stopWalkSound();
         }
 
         double futurX = Math.max(SIZE / 2, Math.min(player.getX() + dx, MAP_WIDTH - SIZE / 2));
@@ -199,15 +281,69 @@ public class MonJeu extends JPanel {
             player.setY(futurY);
         }
 
-        // Vérification du portail pour changer de map
-        if (portal.checkCollision(player.getBounds())) {
-            int nextMap = (world.getCurrentMap() == 1) ? 2 : 1;
-            world.loadMap(nextMap);
-            player.setX(portal.getSpawnX());
-            player.setY(portal.getSpawnY());
-            // Repositionne le portail de retour sur la nouvelle map
-            portal = new Portal(500, 300, 64, 64, (nextMap == 2 ? 1 : 2), 200, 1000);
+        Iterator<Mob> it = mobs.iterator();
+        while (it.hasNext()) {
+            Mob mob = it.next();
+            mob.update(player.getX(), player.getY(), MAP_WIDTH, MAP_HEIGHT, world);
+
+            if (mob.getBounds().intersects(player.getBounds())) {
+                player.takeDamage(20);
+            }
+            if (mob.isDead()) {
+                it.remove();
+            }
         }
+
+        if (player.getHp() <= 0 && !isDying) {
+            isDying = true;
+            deathAnimTimer = 0;
+            return;
+        }
+
+        if (mobs.isEmpty() && !portal.isVisible()) {
+            portal.setVisible(true);
+        }
+
+        if (portal.checkCollision(player.getBounds())) {
+            if (world.getCurrentMap() == 1) {
+                world.loadMap(2);
+                player.setX(portal.getSpawnX());
+                player.setY(portal.getSpawnY());
+                spawnMobsForMap(2);
+            } else {
+                victory = true;
+            }
+        }
+    }
+
+    private void stopWalkSound() {
+        if (walkSoundClip != null && isWalkingSoundPlaying) {
+            walkSoundClip.stop();
+            isWalkingSoundPlaying = false;
+        }
+    }
+
+    private void drawSkullAnimation(Graphics2D g2, int centerX, int centerY) {
+        int lift = deathAnimTimer / 2;
+        int alpha = Math.max(0, 255 - (deathAnimTimer * 2));
+        int sx = centerX - 20;
+        int sy = centerY - 40 - lift;
+
+        g2.setColor(new Color(231, 76, 60, Math.min(140, alpha)));
+        g2.fillOval(centerX - 36, centerY - 36, 72, 72);
+
+        g2.setColor(new Color(245, 245, 245, alpha));
+        g2.fillOval(sx, sy, 40, 32);
+        g2.fillRoundRect(sx + 8, sy + 24, 24, 14, 6, 6);
+
+        g2.setColor(new Color(20, 20, 20, alpha));
+        g2.fillOval(sx + 8, sy + 12, 9, 9);
+        g2.fillOval(sx + 23, sy + 12, 9, 9);
+        g2.fillPolygon(new int[]{sx + 20, sx + 17, sx + 23}, new int[]{sy + 20, sy + 26, sy + 26}, 3);
+
+        g2.drawLine(sx + 14, sy + 31, sx + 14, sy + 38);
+        g2.drawLine(sx + 20, sy + 31, sx + 20, sy + 38);
+        g2.drawLine(sx + 26, sy + 31, sx + 26, sy + 38);
     }
 
     @Override
@@ -227,16 +363,46 @@ public class MonJeu extends JPanel {
         world.draw(g2, this);
         portal.draw(g2);
 
-        boolean isMoving = (pressedKeys.contains(KeyEvent.VK_UP) || pressedKeys.contains(KeyEvent.VK_Z) ||
+        boolean isMoving = !isDying && (pressedKeys.contains(KeyEvent.VK_UP) || pressedKeys.contains(KeyEvent.VK_Z) ||
                             pressedKeys.contains(KeyEvent.VK_DOWN) || pressedKeys.contains(KeyEvent.VK_S) ||
                             pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q) ||
                             pressedKeys.contains(KeyEvent.VK_RIGHT) || pressedKeys.contains(KeyEvent.VK_D));
         
         player.draw(g2, isMoving, mouseX, mouseY, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // Interface fixe à l'écran (barre de vie + numéro de map)
+        for (Mob mob : mobs) {
+            mob.draw(g2);
+        }
+
+        if (isDying) {
+            drawSkullAnimation(g2, (int) player.getX(), (int) player.getY());
+        }
+
         g2.translate(-cameraX, -cameraY);
         healthBar.draw(g2, player.getHp(), player.getMaxHp());
-        
+
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        for (int i = 0; i < 3; i++) {
+            g2.setColor(i < player.getLives() ? new Color(231, 76, 60) : Color.DARK_GRAY);
+            g2.drawString("♥", 205 + (i * 22), 33);
+        }
+
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 13));
+        String objectif = mobs.isEmpty() ? "Portail ouvert !" : "Ennemis restants : " + mobs.size();
+        g2.drawString(objectif, 15, 55);
+
+        if (gameOver || victory) {
+            g2.setColor(new Color(0, 0, 0, 190));
+            g2.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+            g2.setFont(new Font("Arial", Font.BOLD, 38));
+            g2.setColor(victory ? new Color(46, 204, 113) : new Color(231, 76, 60));
+            g2.drawString(victory ? "VICTOIRE !" : "GAME OVER", WINDOW_WIDTH / 2 - 110, WINDOW_HEIGHT / 2 - 10);
+
+            g2.setFont(new Font("Arial", Font.PLAIN, 16));
+            g2.setColor(Color.WHITE);
+            g2.drawString("Appuie sur R pour recommencer depuis le début", WINDOW_WIDTH / 2 - 165, WINDOW_HEIGHT / 2 + 30);
+        }
     }
 }
