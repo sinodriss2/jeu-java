@@ -88,7 +88,7 @@ public class Player {
     public void attack() {
         if (!isAttacking && currentWeapon == WeaponType.COUTEAU) {
             isAttacking = true;
-            attackAnimTimer = 12; // Durée de l'animation d'attaque en frames (~1/4 de seconde)
+            attackAnimTimer = 9; // Durée de l'animation d'attaque en frames (~1/4 de seconde)
             System.out.println("🔪 COUP DE COUTEAU !");
         }
     }
@@ -141,7 +141,7 @@ public class Player {
 
         // Choix de l'image selon l'arme et l'action (Attaque, Marche, Standing)
         if (isAttacking && currentWeapon == WeaponType.COUTEAU) {
-            int attackIndex = (12 - attackAnimTimer) / 4; // Divise les 15 frames en 3 étapes d'animation
+            int attackIndex = (9 - attackAnimTimer) / 3; // Divise les 15 frames en 3 étapes d'animation
             if (attackIndex > 2) attackIndex = 2;
             currentFrameImage = knifeAttackFrames[attackIndex];
         } else if (currentWeapon == WeaponType.COUTEAU) {
