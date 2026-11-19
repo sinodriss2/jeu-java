@@ -7,5 +7,4 @@
 - Compilation et exécution en ligne de commande validées.
 - Déplacement de base du joueur opérationnel.
 
-## ⚠️ Fonctionnalités reportées
-- Système de score (reporté au Sprint 2).
+
