@@ -8,6 +8,9 @@ public class Main {
         JFrame frame = new JFrame("Mon Jeu - Vue du dessus");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
+        
+        
+        
         try {
             
             URL iconURL = Main.class.getResource("/imagesSons/couverture.png");

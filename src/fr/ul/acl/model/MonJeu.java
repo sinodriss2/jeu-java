@@ -18,6 +18,9 @@ public class MonJeu extends JPanel {
     // Nos objets modularisés
     private Player player;
     private GameWorld world;
+    private GameMenu menu;
+    private HealthBar healthBar;
+    private Portal portal;
 
     // Entrées et souris
     private int mouseX = 0;
@@ -31,26 +34,27 @@ public class MonJeu extends JPanel {
     public MonJeu() {
         setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
         setFocusable(true);
-     // Dans le constructeur de MonJeu, ajoute l'écouteur de clic de souris :
+
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
-                if (e.getButton() == java.awt.event.MouseEvent.BUTTON1) { // Clic gauche
+                if (!menu.isActive() && e.getButton() == java.awt.event.MouseEvent.BUTTON1) {
                     player.attack();
                 }
             }
         });
 
-        // Initialisation du monde et du joueur
+        // Initialisation du monde, du joueur et de tes 3 modules
         world = new GameWorld(MAP_WIDTH, MAP_HEIGHT);
         player = new Player(200, 1000, SIZE);
+        menu = new GameMenu();
+        healthBar = new HealthBar(15, 15, 180, 22);
+        // Portail placé juste à droite du spawn (x=400, y=1000) vers Map 2 (spawn 300, 300)
+        portal = new Portal(400, 1000, 64, 64, 2, 300, 300);
 
-        // Chargement du son de pas
         loadWalkSound();
-        // Chargement de la musique de fond
         loadBackgroundMusic();
 
-        // Écouteur de souris
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override
             public void mouseMoved(java.awt.event.MouseEvent e) { mouseX = e.getX(); mouseY = e.getY(); }
@@ -58,19 +62,35 @@ public class MonJeu extends JPanel {
             public void mouseDragged(java.awt.event.MouseEvent e) { mouseX = e.getX(); mouseY = e.getY(); }
         });
 
-        // Écouteur clavier
         addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) { pressedKeys.add(e.getKeyCode()); 
-            if (e.getKeyCode() == KeyEvent.VK_A) {
-                player.switchWeapon();
+            public void keyPressed(KeyEvent e) {
+                if (menu.isActive()) {
+                    menu.handleKeyPressed(e.getKeyCode());
+                    return;
+                }
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    menu.setActive(true);
+                    pressedKeys.clear();
+                    return;
+                }
+
+                pressedKeys.add(e.getKeyCode());
+                if (e.getKeyCode() == KeyEvent.VK_A) {
+                    player.switchWeapon();
+                }
+                // Touche H pour tester la baisse de vie pendant la démonstration
+                if (e.getKeyCode() == KeyEvent.VK_H) {
+                    player.takeDamage(15);
+                }
             }
-            }
+
             @Override
-            public void keyReleased(KeyEvent e) { pressedKeys.remove(e.getKeyCode()); }
+            public void keyReleased(KeyEvent e) {
+                pressedKeys.remove(e.getKeyCode());
+            }
         });
 
-        // Boucle de jeu à 60 FPS
         Timer timer = new Timer(16, e -> {
             updateGame();
             repaint();
@@ -98,19 +118,15 @@ public class MonJeu extends JPanel {
                 javax.sound.sampled.AudioInputStream audioIn = javax.sound.sampled.AudioSystem.getAudioInputStream(musicUrl);
                 javax.sound.sampled.Clip clip = javax.sound.sampled.AudioSystem.getClip();
                 clip.open(audioIn);
-
-                // Réduction du volume (Gain en dB)
                 try {
                     javax.sound.sampled.FloatControl gainControl = 
                         (javax.sound.sampled.FloatControl) clip.getControl(javax.sound.sampled.FloatControl.Type.MASTER_GAIN);
-                    gainControl.setValue(-15.0f); // Volume réduit
+                    gainControl.setValue(-15.0f);
                 } catch (Exception ex) {
                     System.err.println("Contrôle de volume non supporté.");
                 }
-
                 clip.start();
                 clip.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
-                System.out.println("🎵 Musique de fond activée avec volume réduit.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -124,6 +140,14 @@ public class MonJeu extends JPanel {
     }
 
     private void updateGame() {
+        if (menu.isActive()) {
+            if (walkSoundClip != null && isWalkingSoundPlaying) {
+                walkSoundClip.stop();
+                isWalkingSoundPlaying = false;
+            }
+            return;
+        }
+
         double dx = 0;
         double dy = 0;
 
@@ -132,20 +156,17 @@ public class MonJeu extends JPanel {
         if (pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q)) { dx -= speed; }
         if (pressedKeys.contains(KeyEvent.VK_RIGHT) || pressedKeys.contains(KeyEvent.VK_D)) { dx += speed; }
 
-        // Normalisation diagonale normale
         if (dx != 0 && dy != 0) {
             dx *= 0.7071;
             dy *= 0.7071;
         }
 
-        // Si le joueur appuie sur Espace, on déclenche le dash en lui passant la direction actuelle
         if (pressedKeys.contains(KeyEvent.VK_SPACE)) {
             player.startDash(dx, dy);
         }
 
-        // --- GESTION DE LA VITESSE SI LE DASH EST ACTIF ---
         if (player.isDashing()) {
-            double dashSpeed = speed * 3.5; // Vitesse fulgurante !
+            double dashSpeed = speed * 3.5;
             dx = player.getDashDx() * dashSpeed;
             dy = player.getDashDy() * dashSpeed;
         }
@@ -153,7 +174,6 @@ public class MonJeu extends JPanel {
         boolean isMoving = (dx != 0 || dy != 0);
         player.updateAnimation(isMoving);
 
-        // Gestion du son de pas (on coupe le son pendant le dash si on veut, ou on le laisse)
         if (isMoving && !player.isDashing()) {
             if (walkSoundClip != null && !isWalkingSoundPlaying) {
                 walkSoundClip.setFramePosition(0);
@@ -167,7 +187,6 @@ public class MonJeu extends JPanel {
             }
         }
 
-        // --- COLLISIONS X et Y ---
         double futurX = Math.max(SIZE / 2, Math.min(player.getX() + dx, MAP_WIDTH - SIZE / 2));
         Rectangle hitboxX = new Rectangle((int)(futurX - SIZE / 2), (int)(player.getY() - SIZE / 2), SIZE, SIZE);
         if (!world.checkCollision(hitboxX)) {
@@ -179,6 +198,16 @@ public class MonJeu extends JPanel {
         if (!world.checkCollision(hitboxY)) {
             player.setY(futurY);
         }
+
+        // Vérification du portail pour changer de map
+        if (portal.checkCollision(player.getBounds())) {
+            int nextMap = (world.getCurrentMap() == 1) ? 2 : 1;
+            world.loadMap(nextMap);
+            player.setX(portal.getSpawnX());
+            player.setY(portal.getSpawnY());
+            // Repositionne le portail de retour sur la nouvelle map
+            portal = new Portal(500, 300, 64, 64, (nextMap == 2 ? 1 : 2), 200, 1000);
+        }
     }
 
     @Override
@@ -186,20 +215,28 @@ public class MonJeu extends JPanel {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        // Caméra centrée sur le joueur
+        if (menu.isActive()) {
+            menu.draw(g2, WINDOW_WIDTH, WINDOW_HEIGHT);
+            return;
+        }
+
         double cameraX = (WINDOW_WIDTH / 2.0) - player.getX();
         double cameraY = (WINDOW_HEIGHT / 2.0) - player.getY();
         g2.translate(cameraX, cameraY);
 
-        // Dessin du monde
         world.draw(g2, this);
+        portal.draw(g2);
 
-        // Dessin du joueur
         boolean isMoving = (pressedKeys.contains(KeyEvent.VK_UP) || pressedKeys.contains(KeyEvent.VK_Z) ||
                             pressedKeys.contains(KeyEvent.VK_DOWN) || pressedKeys.contains(KeyEvent.VK_S) ||
                             pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q) ||
                             pressedKeys.contains(KeyEvent.VK_RIGHT) || pressedKeys.contains(KeyEvent.VK_D));
         
         player.draw(g2, isMoving, mouseX, mouseY, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // Interface fixe à l'écran (barre de vie + numéro de map)
+        g2.translate(-cameraX, -cameraY);
+        healthBar.draw(g2, player.getHp(), player.getMaxHp());
+        
     }
 }

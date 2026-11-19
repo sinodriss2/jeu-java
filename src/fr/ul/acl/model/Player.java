@@ -8,6 +8,10 @@ public class Player {
     private double x, y;
     private final int size;
     
+    private int hp = 100;
+    private int maxHp = 100;
+    private int invulnerabilityTimer = 0;
+    
     // Armes et Sprites
     public enum WeaponType { MAINS_NUES, COUTEAU }
     private WeaponType currentWeapon = WeaponType.MAINS_NUES;
@@ -106,6 +110,8 @@ public class Player {
     }
 
     public void updateAnimation(boolean isMoving) {
+    	if (invulnerabilityTimer > 0) invulnerabilityTimer--;
+    	
         if (isDashing) {
             dashDurationTimer--;
             if (dashDurationTimer <= 0) isDashing = false;
@@ -188,4 +194,20 @@ public class Player {
     public Rectangle getBounds() {
         return new Rectangle((int)(x - size / 2), (int)(y - size / 2), size, size);
     }
+    public int getHp() { return hp; }
+    public int getMaxHp() { return maxHp; }
+    public void takeDamage(int amount) {
+        if (invulnerabilityTimer == 0 && !isDashing) {
+            this.hp = Math.max(0, this.hp - amount);
+            this.invulnerabilityTimer = 45;
+        }
+    }
+
+    public void resetHp() {
+        this.hp = maxHp;
+        this.invulnerabilityTimer = 0;
+    }
+
+    public WeaponType getCurrentWeapon() { return currentWeapon; }
+    public void heal(int amount) { this.hp = Math.min(maxHp, this.hp + amount); }
 }
