@@ -8,6 +8,13 @@
 - Diagramme de Classe
 - Xml
 - Création des ennemis
+- Ajout bouclier
+- Animation de recharges
+- Recul d'armes
+- 
+
+  
+  
 
 ##  Tâches planifiées
 - [ ] **Anas** : Barre de vie, Transitions
