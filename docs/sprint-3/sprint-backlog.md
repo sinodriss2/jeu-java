@@ -5,6 +5,16 @@
 - Implémentation d'une barre de vie
 - Transition entre les différents niveaux.
 - Animation coup de couteau
+- Diagramme de Classe
+- Xml
+- Création des ennemis
+- Ajout bouclier
+- Animation de recharges
+- Recul d'armes
+- 
+
+  
+  
 
 ##  Tâches planifiées
 - [ ] **Anas** : Barre de vie, Transitions
