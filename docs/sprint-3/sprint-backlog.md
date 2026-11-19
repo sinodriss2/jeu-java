@@ -7,7 +7,7 @@
 - Animation coup de couteau
 - Diagramme de Classe
 - Xml
-- 
+- Création des ennemis
 
 ##  Tâches planifiées
 - [ ] **Anas** : Barre de vie, Transitions
