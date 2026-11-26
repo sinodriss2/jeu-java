@@ -7,6 +7,9 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class GameWorld {
+    private static final int MIN_MAP_ID = 1;
+    private static final int MAX_MAP_ID = 5;
+
     private BufferedImage bgImage;
     private ArrayList<Rectangle> obstacles = new ArrayList<>();
     private ArrayList<Obstacle> customObjects = new ArrayList<>();
@@ -20,17 +23,26 @@ public class GameWorld {
     }
 
     public void loadMap(int mapId) {
+        if (mapId < MIN_MAP_ID || mapId > MAX_MAP_ID) {
+            mapId = MIN_MAP_ID;
+        }
+
         this.currentMap = mapId;
         obstacles.clear();
         customObjects.clear();
 
-        String mapPath = (mapId == 2) ? "/imagesSons/map2.png" : "/imagesSons/grand_map.png";
+        String mapPath = switch (mapId) {
+            case 2 -> "/imagesSons/map2.png";
+            case 3 -> "/imagesSons/map3.png";
+            case 4 -> "/imagesSons/map4.png";
+            case 5 -> "/imagesSons/map5.png";
+            default -> "/imagesSons/grand_map.png";
+        };
 
         try {
             java.net.URL imgURL = getClass().getResource(mapPath);
             if (imgURL == null) {
-                mapPath = "/imagesSons/grand_map.png";
-                imgURL = getClass().getResource(mapPath);
+                imgURL = getClass().getResource("/imagesSons/grand_map.png");
             }
 
             if (imgURL != null) {
@@ -61,21 +73,37 @@ public class GameWorld {
             e.printStackTrace();
         }
 
-        // --- AJOUT DE TES OBJETS D'OBSTACLES (PAS BESOIN DE NOIR) ---
-        if (mapId == 1) {
-            // Exemple avec les images déjà présentes dans votre dossier imagesSons :
-            customObjects.add(new Obstacle(300, 900, 80, 80, "/imagesSons/obstacle.png"));
-            customObjects.add(new Obstacle(550, 1050, 96, 96, "/imagesSons/obstacle_vrai.png"));
-        } else if (mapId == 2) {
-            // Objets sur la Map 2 (change les chemins avec tes propres PNG) :
-            customObjects.add(new Obstacle(400, 450, 90, 90, "/imagesSons/obstacle.png"));
-            customObjects.add(new Obstacle(700, 350, 100, 100, "/imagesSons/obstacle_vrai.png"));
-            customObjects.add(new Obstacle(1000, 1000, 150, 150, "/imagesSons/map2_rocher1.png"));
-            customObjects.add(new Obstacle(2000, 1000, 150, 150, "/imagesSons/map2_palmier1.png"));
+        // --- OBJETS D'OBSTACLES PAR CARTE (1 A 5) ---
+        switch (mapId) {
+            case 1 -> {
+                customObjects.add(new Obstacle(300, 900, 80, 80, "/imagesSons/obstacle.png"));
+                customObjects.add(new Obstacle(550, 1050, 96, 96, "/imagesSons/obstacle_vrai.png"));
+            }
+            case 2 -> {
+                customObjects.add(new Obstacle(400, 450, 90, 90, "/imagesSons/obstacle.png"));
+                customObjects.add(new Obstacle(700, 350, 100, 100, "/imagesSons/obstacle_vrai.png"));
+                customObjects.add(new Obstacle(1000, 1000, 150, 150, "/imagesSons/map2_rocher1.png"));
+                customObjects.add(new Obstacle(2000, 1000, 150, 150, "/imagesSons/map2_palmier1.png"));
+            }
+            case 3 -> {
+                customObjects.add(new Obstacle(500, 600, 96, 96, "/imagesSons/obstacle.png"));
+                customObjects.add(new Obstacle(1200, 800, 120, 120, "/imagesSons/obstacle_vrai.png"));
+            }
+            case 4 -> {
+                customObjects.add(new Obstacle(450, 500, 100, 100, "/imagesSons/obstacle_vrai.png"));
+                customObjects.add(new Obstacle(1400, 900, 140, 140, "/imagesSons/map2_rocher1.png"));
+            }
+            case 5 -> {
+                customObjects.add(new Obstacle(600, 500, 110, 110, "/imagesSons/obstacle.png"));
+                customObjects.add(new Obstacle(1500, 1100, 150, 150, "/imagesSons/map2_palmier1.png"));
+            }
+            default -> {
+            }
         }
     }
 
     public int getCurrentMap() { return currentMap; }
+    public int getMaxMapId() { return MAX_MAP_ID; }
 
     public void draw(Graphics2D g2, JPanel observer) {
         if (bgImage != null) {
@@ -85,20 +113,17 @@ public class GameWorld {
             g2.fillRect(0, 0, mapWidth, mapHeight);
         }
 
-        // Dessin de tous tes objets par-dessus la carte
         for (Obstacle obj : customObjects) {
             obj.draw(g2, observer);
         }
     }
 
     public boolean checkCollision(Rectangle hitbox) {
-        // 1. Collisions avec les pixels noirs de la map
         for (Rectangle obstacle : obstacles) {
             if (hitbox.intersects(obstacle)) {
                 return true;
             }
         }
-        // 2. Collisions avec tes nouveaux objets
         for (Obstacle obj : customObjects) {
             if (hitbox.intersects(obj.getBounds())) {
                 return true;

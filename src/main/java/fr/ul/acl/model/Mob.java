@@ -3,6 +3,7 @@ package fr.ul.acl.model;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import javax.imageio.ImageIO;
@@ -13,6 +14,7 @@ public class Mob {
     private double speed = 1.7;
     private int changeDirectionCooldown = 0;
     private boolean facingLeft = false;
+    private double aimAngle = 0.0;
 
     private final int size = 64;
     private int maxHp;
@@ -96,11 +98,16 @@ public class Mob {
         double aggroRange = 350;
         double dx = 0, dy = 0;
 
+        // Oriente toujours le zombie vers le joueur (ou remplace par `if (distToPlayer < aggroRange)` pour ne pivoter qu'en poursuite)
+ 
+        double angleToPlayer = Math.atan2(playerY - y, playerX - x);
+        aimAngle = angleToPlayer;
+
         if (distToPlayer < aggroRange) {
-            double angle = Math.atan2(playerY - y, playerX - x);
-            dx = Math.cos(angle) * (speed * 1.4);
-            dy = Math.sin(angle) * (speed * 1.4);
-        } else {
+            dx = Math.cos(angleToPlayer) * (speed * 1.4);
+            dy = Math.sin(angleToPlayer) * (speed * 1.4);
+        }
+        else {
             changeDirectionCooldown--;
             if (changeDirectionCooldown <= 0) {
                 double angle = Math.random() * 2 * Math.PI;
@@ -163,13 +170,16 @@ public class Mob {
 
         ArrayList<BufferedImage> activeList = isAttacking ? attackSprites : walkSprites;
 
+        // Si tes sprites regardent déjà vers la droite à 0 rad, utilise `aimAngle`.
+        // S'ils regardent vers le haut (vue du dessus type top-down), remplace `aimAngle` par `aimAngle + Math.PI / 2`.
+        
+        AffineTransform oldTransform = g2.getTransform();
+     
+        g2.rotate(aimAngle + Math.PI / 2, x, y);
+
         if (!activeList.isEmpty()) {
             BufferedImage current = activeList.get(animIndex % activeList.size());
-            if (facingLeft) {
-                g2.drawImage(current, drawX + size, drawY, -size, size, null);
-            } else {
-                g2.drawImage(current, drawX, drawY, size, size, null);
-            }
+            g2.drawImage(current, drawX, drawY, size, size, null);
             if (hurtFlashTimer > 0) {
                 g2.setColor(new Color(255, 50, 50, 120));
                 g2.fillOval(drawX + 8, drawY + 8, size - 16, size - 16);
@@ -181,6 +191,9 @@ public class Mob {
             g2.fillOval(drawX + 20, drawY + 22, 7, 7);
             g2.fillOval(drawX + 37, drawY + 22, 7, 7);
         }
+
+        // Restaure la transformation avant de dessiner la barre de vie (pour qu'elle reste horizontale)
+        g2.setTransform(oldTransform);
 
         // Barre de vie dynamique au-dessus du zombie
         double ratio = (double) hp / maxHp;

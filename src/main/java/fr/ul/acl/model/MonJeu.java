@@ -11,10 +11,10 @@ import java.util.Set;
 
 public class MonJeu extends JPanel {
     private static final long serialVersionUID = 1L;
-    
-    private final int WINDOW_WIDTH = 600, WINDOW_HEIGHT = 400; 
-    private final int MAP_WIDTH = 3000, MAP_HEIGHT = 3000;    
-    private final int SIZE = 64;    
+
+    private final int WINDOW_WIDTH = 600, WINDOW_HEIGHT = 400;
+    private final int MAP_WIDTH = 3000, MAP_HEIGHT = 3000;
+    private final int SIZE = 64;
     private final double speed = 4 * 4.0;
 
     private Player player;
@@ -22,6 +22,7 @@ public class MonJeu extends JPanel {
     private GameMenu menu;
     private HealthBar healthBar;
     private Portal portal;
+    private int portalCooldown = 0;
     private ArrayList<Mob> mobs = new ArrayList<>();
 
     private boolean isDying = false;
@@ -108,19 +109,42 @@ public class MonJeu extends JPanel {
 
     private void spawnMobsForMap(int mapId) {
         mobs.clear();
-        if (mapId == 1) {
-            // Map 1 : zombies à 60 PV -> 2 coups de couteau (30 dégâts) suffisent
-            mobs.add(new Mob(320, 960, 60, 1.7));
-            mobs.add(new Mob(340, 1060, 60, 1.7));
-            mobs.add(new Mob(260, 1120, 60, 1.7));
-            portal = new Portal(400, 1000, 64, 64, 2, 300, 300, false);
-        } else if (mapId == 2) {
-            // Map 2 : zombies plus coriaces à 120 PV -> 4 coups de couteau
-            mobs.add(new Mob(420, 300, 120, 2.2));
-            mobs.add(new Mob(450, 380, 120, 2.2));
-            mobs.add(new Mob(350, 420, 120, 2.2));
-            mobs.add(new Mob(520, 450, 120, 2.2));
-            portal = new Portal(500, 300, 64, 64, 3, 0, 0, false);
+        switch (mapId) {
+            case 1 -> {
+                // Map 1 : zombies à 60 PV -> 2 coups de couteau (30 dégâts) suffisent
+                mobs.add(new Mob(320, 960, 60, 1.7));
+                mobs.add(new Mob(340, 1060, 60, 1.7));
+                mobs.add(new Mob(260, 1120, 60, 1.7));
+                portal = new Portal(400, 1000, 64, 64, 2, 300, 300, false);
+            }
+            case 2 -> {
+                // Map 2 : zombies plus coriaces à 120 PV -> 4 coups de couteau
+                mobs.add(new Mob(420, 300, 120, 2.2));
+                mobs.add(new Mob(450, 380, 120, 2.2));
+                mobs.add(new Mob(350, 420, 120, 2.2));
+                mobs.add(new Mob(520, 450, 120, 2.2));
+                portal = new Portal(500, 300, 64, 64, 3, 300, 300, false);
+            }
+            case 3 -> {
+                mobs.add(new Mob(500, 500, 140, 2.4));
+                mobs.add(new Mob(650, 550, 140, 2.4));
+                mobs.add(new Mob(550, 700, 140, 2.4));
+                portal = new Portal(750, 600, 64, 64, 4, 300, 300, false);
+            }
+            case 4 -> {
+                mobs.add(new Mob(600, 600, 160, 2.6));
+                mobs.add(new Mob(750, 650, 160, 2.6));
+                mobs.add(new Mob(700, 800, 160, 2.6));
+                portal = new Portal(850, 700, 64, 64, 5, 300, 300, false);
+            }
+            case 5 -> {
+                mobs.add(new Mob(700, 700, 200, 2.8));
+                mobs.add(new Mob(850, 750, 200, 2.8));
+                mobs.add(new Mob(800, 900, 200, 2.8));
+                portal = new Portal(950, 800, 64, 64, 5, 0, 0, false);
+            }
+            default -> {
+            }
         }
     }
 
@@ -150,6 +174,7 @@ public class MonJeu extends JPanel {
         victory = false;
         isDying = false;
         deathAnimTimer = 0;
+        portalCooldown = 0;
         pressedKeys.clear();
         player.resetAll();
         player.setX(200);
@@ -188,7 +213,7 @@ public class MonJeu extends JPanel {
                 javax.sound.sampled.Clip clip = javax.sound.sampled.AudioSystem.getClip();
                 clip.open(audioIn);
                 try {
-                    javax.sound.sampled.FloatControl gainControl = 
+                    javax.sound.sampled.FloatControl gainControl =
                         (javax.sound.sampled.FloatControl) clip.getControl(javax.sound.sampled.FloatControl.Type.MASTER_GAIN);
                     gainControl.setValue(-15.0f);
                 } catch (Exception ex) {}
@@ -208,6 +233,10 @@ public class MonJeu extends JPanel {
         if (menu.isActive() || gameOver || victory) {
             stopWalkSound();
             return;
+        }
+
+        if (portalCooldown > 0) {
+            portalCooldown--;
         }
 
         if (isDying) {
@@ -304,12 +333,18 @@ public class MonJeu extends JPanel {
             portal.setVisible(true);
         }
 
-        if (portal.checkCollision(player.getBounds())) {
-            if (world.getCurrentMap() == 1) {
-                world.loadMap(2);
+        if (portalCooldown == 0 && portal.checkCollision(player.getBounds())) {
+            int current = world.getCurrentMap();
+            int maxMap = world.getMaxMapId();
+            System.out.println("Portail pris ! currentMap = " + current + ", maxMapId = " + maxMap);
+
+            if (current < maxMap) {
+                int nextMap = current + 1;
+                portalCooldown = 30;
+                world.loadMap(nextMap);
                 player.setX(portal.getSpawnX());
                 player.setY(portal.getSpawnY());
-                spawnMobsForMap(2);
+                spawnMobsForMap(nextMap);
             } else {
                 victory = true;
             }
@@ -367,7 +402,7 @@ public class MonJeu extends JPanel {
                             pressedKeys.contains(KeyEvent.VK_DOWN) || pressedKeys.contains(KeyEvent.VK_S) ||
                             pressedKeys.contains(KeyEvent.VK_LEFT) || pressedKeys.contains(KeyEvent.VK_Q) ||
                             pressedKeys.contains(KeyEvent.VK_RIGHT) || pressedKeys.contains(KeyEvent.VK_D));
-        
+
         player.draw(g2, isMoving, mouseX, mouseY, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         for (Mob mob : mobs) {
@@ -391,6 +426,7 @@ public class MonJeu extends JPanel {
         g2.setFont(new Font("Arial", Font.BOLD, 13));
         String objectif = mobs.isEmpty() ? "Portail ouvert !" : "Ennemis restants : " + mobs.size();
         g2.drawString(objectif, 15, 55);
+        g2.drawString("Monde : " + world.getCurrentMap() + "/" + world.getMaxMapId(), 15, 75);
 
         if (gameOver || victory) {
             g2.setColor(new Color(0, 0, 0, 190));

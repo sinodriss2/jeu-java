@@ -220,10 +220,7 @@ public class Player {
         this.lives = Math.max(0, this.lives - 1);
     }
 
-    public void resetHp() {
-        this.hp = this.maxHp;
-        this.invulnerabilityTimer = 0;
-    }
+  
 
     public void resetAll() {
         this.lives = 3;
