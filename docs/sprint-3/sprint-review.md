@@ -3,7 +3,10 @@
 ##  Date : 19/11/2026
 
 ##  Fonctionnalités réalisées et validées
-- (À compléter à la fin du Sprint 3 avec ce qui fonctionne)
+- Transition entre les mondes
+- Ennemi fonctionnel
+- Coup de couteau fonctionnel
+- Apparition des portails fonctionnel
 
 ##  Fonctionnalités non finalisées / reportées
-- (À compléter si une tâche n'a pas pu être finie)
+- Mise en place du bouclier et de l'arme à feu
