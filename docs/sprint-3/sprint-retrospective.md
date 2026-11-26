@@ -12,11 +12,9 @@
 ## Ce qui est à améliorer
 - Plus de types d'ennemies
 - Ajout du fichier "test" à xml.
-- 
 
 ##  Répartition des contributions
-- **** : Développement et documentation Agile.
-- **Coéquipier** :
+- Ramazan et Anas: Développement et documentation Agile.
 - Marvin a fait les tests qui prennent en compte le déplacement, .
 - Ramazan a fait le dessin du personnage et de l'ennemie, la mise en place des musiques et effets sonores.
 - Anas a mis en place la transition entre les mondes via des portails qui ne s'allument si le monde actuel est complété. 
