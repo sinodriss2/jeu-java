@@ -15,3 +15,7 @@ build/
 .classpath
 .project
 /target/
+
+mvnw
+mvnw.cmd
+.mvn/
